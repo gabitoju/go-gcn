@@ -1,6 +1,8 @@
 package model
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 type Layer struct {
 	InFeatures  int
