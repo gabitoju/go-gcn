@@ -4,7 +4,7 @@ import (
 	"math/rand"
 )
 
-func dropout(x [][]float64, dropoutRate float64) [][]float64 {
+func Dropout(x [][]float64, dropoutRate float64) [][]float64 {
 
 	output := make([][]float64, len(x))
 

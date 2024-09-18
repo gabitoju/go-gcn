@@ -39,7 +39,7 @@ func TestDropout(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := dropout(test.input, test.dropoutRate)
+			actual := Dropout(test.input, test.dropoutRate)
 			if !EqualMatrices(actual, test.expected, 1e-9) {
 				t.Errorf("dropout(%v, %f) = %v; want %v", test.input, test.dropoutRate, actual, test.expected)
 			}
