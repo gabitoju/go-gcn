@@ -4,14 +4,36 @@ import (
 	"math"
 )
 
-func Relu(x float64) float64 {
+func Relu(x [][]float64) [][]float64 {
+	output := make([][]float64, len(x))
+	for i, row := range x {
+		output[i] = make([]float64, len(row))
+		for j, val := range row {
+			output[i][j] = relu(val)
+		}
+	}
+	return output
+}
+
+func relu(x float64) float64 {
 	if x < 0 {
 		return 0
 	}
 	return x
 }
 
-func relu_derivative(x float64) float64 {
+func relu_derivative(x [][]float64) [][]float64 {
+	output := make([][]float64, len(x))
+	for i, row := range x {
+		output[i] = make([]float64, len(row))
+		for j, val := range row {
+			output[i][j] = relu_derivative1d(val)
+		}
+	}
+	return output
+}
+
+func relu_derivative1d(x float64) float64 {
 	if x < 0 {
 		return 0
 	}
