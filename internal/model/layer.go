@@ -2,6 +2,8 @@ package model
 
 import (
 	"math/rand"
+
+	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
 type Layer struct {
@@ -27,6 +29,20 @@ func NewLayer(inFeatures, outFeatures int) *Layer {
 	return layer
 }
 
+func NewLayerFromWeightsAndBias(weights [][]float64, bias []float64) *Layer {
+	inFeatures := len(weights)
+	outFeatures := len(bias)
+
+	layer := &Layer{
+		InFeatures:  inFeatures,
+		OutFeatures: outFeatures,
+		Weights:     weights,
+		Bias:        bias,
+	}
+
+	return layer
+}
+
 func (l *Layer) ResetWeightsAndBias() {
 	for i := range l.Weights {
 		l.Weights[i] = make([]float64, l.OutFeatures)
@@ -38,4 +54,13 @@ func (l *Layer) ResetWeightsAndBias() {
 	for i := range l.Bias {
 		l.Bias[i] = rand.Float64()
 	}
+}
+
+func (l *Layer) Forward(input [][]float64, adj [][]float64) [][]float64 {
+	support := utils.MatMul(input, l.Weights)
+	output := utils.MatMul(adj, support)
+
+	output = utils.MatAddBroadcast(output, l.Bias)
+
+	return output
 }
