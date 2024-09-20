@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/csv"
+	"math/rand/v2"
 	"os"
 	"strconv"
 )
@@ -90,4 +91,21 @@ func EncodeOneHot(labels []string) []int32 {
 	}
 
 	return oneHotLabels
+}
+
+func CreateDataSplit(trainSize, testSize, validationSize, size int) ([]int, []int, []int) {
+	indices := make([]int, size)
+	for i := 0; i < size; i++ {
+		indices[i] = i
+	}
+
+	rand.Shuffle(size, func(i, j int) {
+		indices[i], indices[j] = indices[j], indices[i]
+	})
+
+	trainIndices := indices[:trainSize]
+	testIndices := indices[trainSize : trainSize+testSize]
+	validationIndices := indices[trainSize+testSize : trainSize+testSize+validationSize]
+
+	return trainIndices, testIndices, validationIndices
 }
