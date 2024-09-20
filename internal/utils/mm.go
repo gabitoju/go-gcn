@@ -1,6 +1,10 @@
 package utils
 
-import "math"
+import (
+	"math"
+
+	"gonum.org/v1/gonum/mat"
+)
 
 func EqualMatrices(a, b [][]float64, tolerance float64) bool {
 	if len(a) != len(b) {
@@ -27,18 +31,35 @@ func MatMul(a, b [][]float64) [][]float64 {
 		panic("Matrix multiplication not possible")
 	}
 
+	// Convertir las matrices a formato gonum
+	aMat := mat.NewDense(len(a), len(a[0]), nil)
+	bMat := mat.NewDense(len(b), len(b[0]), nil)
+	for i := range a {
+		for j := range a[i] {
+			aMat.Set(i, j, a[i][j])
+		}
+	}
+	for i := range b {
+		for j := range b[i] {
+			bMat.Set(i, j, b[i][j])
+		}
+	}
+
+	// Crear la matriz de resultado
+	resultMat := mat.NewDense(len(a), len(b[0]), nil)
+
+	// Realizar la multiplicación de matrices
+	resultMat.Mul(aMat, bMat)
+
+	// Convertir el resultado de nuevo a [][]float64
 	result := make([][]float64, len(a))
 	for i := range result {
 		result[i] = make([]float64, len(b[0]))
-	}
-
-	for i := range a {
-		for j := range b[0] {
-			for k := range b {
-				result[i][j] += a[i][k] * b[k][j]
-			}
+		for j := range result[i] {
+			result[i][j] = resultMat.At(i, j)
 		}
 	}
+
 	return result
 }
 

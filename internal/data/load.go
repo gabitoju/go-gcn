@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-func LoadData(path, dataset string) ([][]int32, [][]float64, []int32) {
+func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 
 	contentPath := path + "/" + dataset + ".content"
 	edgePath := path + "/" + dataset + ".cites"
@@ -51,9 +51,9 @@ func LoadData(path, dataset string) ([][]int32, [][]float64, []int32) {
 	csvReader = csv.NewReader(edgeFile)
 	csvReader.Comma = '\t'
 
-	adj := make([][]int32, len(indices))
+	adj := make([][]float64, len(indices))
 	for i := range adj {
-		adj[i] = make([]int32, len(indices))
+		adj[i] = make([]float64, len(indices))
 	}
 	for {
 		record, err := csvReader.Read()

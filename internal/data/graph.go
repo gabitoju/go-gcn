@@ -11,7 +11,6 @@ func NormalizeAdjacencyMatrix(adj [][]float64) [][]float64 {
 	selfLoopsMatrix := utils.MatAdd(adj, I)
 
 	D := DegreeMatrix(selfLoopsMatrix)
-
 	invSqrtD := make([][]float64, len(D))
 	for i, row := range D {
 		invSqrtD[i] = make([]float64, len(row))
