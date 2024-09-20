@@ -1,6 +1,9 @@
 package model
 
-import "github.com/gabitoju/go-gcn/internal/utils"
+import (
+	"github.com/gabitoju/go-gcn/internal/data"
+	"github.com/gabitoju/go-gcn/internal/utils"
+)
 
 type GCN struct {
 	Layers    []*Layer
@@ -33,9 +36,10 @@ func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout float64) *GCN {
 }
 
 func (g *GCN) Forward(x, adj [][]float64) [][]float64 {
+	normAdj := data.NormalizeAdjacencyMatrix(adj)
 	out := x
 	for i, layer := range g.Layers {
-		out = layer.Forward(out, adj)
+		out = layer.Forward(out, normAdj)
 		if i < g.NLayers-1 {
 			out = utils.Relu(out)
 			out = utils.Dropout(out, g.Dropout)
