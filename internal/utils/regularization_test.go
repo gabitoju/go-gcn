@@ -5,6 +5,7 @@ import (
 )
 
 func TestDropout(t *testing.T) {
+	InitializeRand(42)
 	tests := []struct {
 		name        string
 		input       [][]float64
