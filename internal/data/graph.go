@@ -30,16 +30,19 @@ func IdentityMatrix(n int) [][]float64 {
 	identity := make([][]float64, n)
 	for i := range identity {
 		identity[i] = make([]float64, n)
-		identity[i][i] = 1
+		if i < n {
+			identity[i][i] = 1
+		}
 	}
 	return identity
 }
 
 func DegreeMatrix(adj [][]float64) [][]float64 {
-	degree := make([][]float64, len(adj))
-	for i, row := range adj {
-		degree[i] = make([]float64, len(row))
-		degree[i][i] = Sum(row)
+	n := len(adj)
+	degree := make([][]float64, n)
+	for i := range adj {
+		degree[i] = make([]float64, n)
+		degree[i][i] = Sum(adj[i])
 	}
 	return degree
 }
