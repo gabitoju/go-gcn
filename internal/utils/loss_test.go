@@ -9,7 +9,7 @@ func TestCrossEntropyLoss(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    [][]float64
-		labels   []int
+		labels   []int32
 		expected float64
 	}{
 		{
@@ -18,7 +18,7 @@ func TestCrossEntropyLoss(t *testing.T) {
 				{0.1, 0.2, 0.7},
 				{0.7, 0.2, 0.1},
 			},
-			labels:   []int{2, 0},
+			labels:   []int32{2, 0},
 			expected: 0.36,
 		},
 		{
@@ -27,7 +27,7 @@ func TestCrossEntropyLoss(t *testing.T) {
 				{0.1, 0.2, 0.7},
 				{0.7, 0.2, 0.1},
 			}, 1),
-			labels:   []int{2, 0},
+			labels:   []int32{2, 0},
 			expected: 0.77,
 		},
 	}
