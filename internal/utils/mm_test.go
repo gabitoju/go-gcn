@@ -31,6 +31,13 @@ func TestEqualMatrices(t *testing.T) {
 			tolerance: 1e-9,
 			expected:  false,
 		},
+		{
+			name:      "different_dimensions_2",
+			matrix1:   [][]float64{{1, 2, 3}, {4, 5, 6}},
+			matrix2:   [][]float64{{1, 2}, {3, 4}, {5, 6}},
+			tolerance: 1e-9,
+			expected:  false,
+		},
 	}
 
 	for _, test := range tests {
@@ -115,4 +122,50 @@ func TestMatAddBroadcast(t *testing.T) {
 		})
 	}
 
+}
+
+func TestTranspose(t *testing.T) {
+	tests := []struct {
+		name     string
+		matrix   [][]float64
+		expected [][]float64
+	}{
+		{
+			name:     "simple_transpose",
+			matrix:   [][]float64{{1, 2, 3}, {4, 5, 6}},
+			expected: [][]float64{{1, 4}, {2, 5}, {3, 6}},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := Transpose(test.matrix)
+			if !EqualMatrices(actual, test.expected, 1e-9) {
+				t.Errorf("Transpose(%v) = %v; want %v", test.matrix, actual, test.expected)
+			}
+		})
+	}
+}
+
+func TestMatElementWiseMul(t *testing.T) {
+	tests := []struct {
+		name     string
+		matrix1  [][]float64
+		matrix2  [][]float64
+		expected [][]float64
+	}{
+		{
+			name:     "simple_element_wise_multiplication",
+			matrix1:  [][]float64{{1, 2, 3}, {4, 5, 6}},
+			matrix2:  [][]float64{{1, 2, 3}, {4, 5, 6}},
+			expected: [][]float64{{1, 4, 9}, {16, 25, 36}},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual := MatElementWiseMul(test.matrix1, test.matrix2)
+			if !EqualMatrices(actual, test.expected, 1e-9) {
+				t.Errorf("MatElementWiseMul(%v, %v) = %v; want %v", test.matrix1, test.matrix2, actual, test.expected)
+			}
+		})
+	}
 }
