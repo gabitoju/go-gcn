@@ -2,6 +2,8 @@ package data
 
 import (
 	"testing"
+
+	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
 func TestEncodeOneHot(t *testing.T) {
@@ -30,6 +32,7 @@ func TestEncodeOneHot(t *testing.T) {
 }
 
 func TestCreateDataSplit(t *testing.T) {
+	utils.InitializeRand(42)
 	tests := []struct {
 		name       string
 		train_size int
