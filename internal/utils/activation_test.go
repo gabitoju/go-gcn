@@ -32,7 +32,7 @@ func TestReluDerivative(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := relu_derivative(test.input)
+			actual := ReluDerivative(test.input)
 			if !EqualMatrices(actual, test.expected, 0) {
 				t.Errorf("relu_derivative(%v) = %v; want %v", test.input, actual, test.expected)
 			}
