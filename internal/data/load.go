@@ -2,9 +2,10 @@ package data
 
 import (
 	"encoding/csv"
-	"math/rand/v2"
 	"os"
 	"strconv"
+
+	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
 func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
@@ -71,7 +72,7 @@ func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 		adj[ix2][ix1] = 1
 	}
 
-	return adj, features, encoded_labels
+	return features, adj, encoded_labels
 }
 
 func EncodeOneHot(labels []string) []int32 {
@@ -99,9 +100,7 @@ func CreateDataSplit(trainSize, testSize, validationSize, size int) ([]int, []in
 		indices[i] = i
 	}
 
-	rand.Shuffle(size, func(i, j int) {
-		indices[i], indices[j] = indices[j], indices[i]
-	})
+	indices = utils.ShuffleInts(size, indices)
 
 	trainIndices := indices[:trainSize]
 	testIndices := indices[trainSize : trainSize+testSize]
