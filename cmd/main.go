@@ -13,10 +13,19 @@ func main() {
 
 	features, adj, labels := data.LoadData("../datasets/cora", "cora")
 
-	trn, _, _ := data.CreateDataSplit(140, 500, 1000, len(labels))
+	trn, valid, test := data.CreateDataSplit(140, 500, 1000, len(labels))
 
-	gcn := model.NewGCN(2, len(features[0]), 16, 7, 0.5)
+	t := train.TrainConfig{
+		Epochs:       1000,
+		Labels:       labels,
+		TrainMask:    trn,
+		ValidMask:    valid,
+		TestMask:     test,
+		LearningRate: 0.001,
+		WeightDecay:  5e-4,
+	}
 
-	train.Train(gcn, features, adj, labels, 1000, trn)
+	gcn := model.NewGCN(2, len(features[0]), 16, 7, 0.5, t.LearningRate)
+	t.Train(gcn, features, adj)
 
 }
