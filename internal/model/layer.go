@@ -116,7 +116,7 @@ func (l *Layer) SGDUpdate(learningRate float64) {
 	}
 }
 
-func (l *Layer) AdamUpdate(beta1, beta2, epsilon float64) {
+func (l *Layer) AdamUpdate(beta1, beta2, epsilon, weightDecay float64) {
 	l.t++
 
 	if l.mW == nil {
@@ -141,7 +141,9 @@ func (l *Layer) AdamUpdate(beta1, beta2, epsilon float64) {
 			mHat := l.mW[i][j] / (1 - math.Pow(beta1, float64(l.t)))
 			vHat := l.vW[i][j] / (1 - math.Pow(beta2, float64(l.t)))
 
-			l.Weights[i][j] -= l.learningRate * mHat / (math.Sqrt(vHat) + epsilon)
+			l.Weights[i][j] -= l.learningRate * (mHat / (math.Sqrt(vHat) + epsilon))
+
+			l.Weights[i][j] -= l.learningRate * weightDecay * l.Weights[i][j]
 		}
 	}
 

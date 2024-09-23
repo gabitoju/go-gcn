@@ -15,7 +15,7 @@ type GCN struct {
 	internalDropout float64
 }
 
-func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout float64) *GCN {
+func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout, lr float64) *GCN {
 	layers := make([]*Layer, nLayers)
 	for i := range layers {
 		if i == 0 {
@@ -25,7 +25,7 @@ func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout float64) *GCN {
 		} else {
 			layers[i] = NewLayer(nHidden, nHidden)
 		}
-		layers[i].learningRate = 0.001
+		layers[i].learningRate = lr
 	}
 	return &GCN{
 		Layers:          layers,
