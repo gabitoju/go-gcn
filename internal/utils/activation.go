@@ -7,15 +7,17 @@ import (
 )
 
 func Relu(x *mat.Dense) *mat.Dense {
-	r, c := x.Dims()
-	out := mat.NewDense(r, c, nil)
-	out.Apply(func(_, _ int, v float64) float64 {
+	return ReluInPlace(mat.DenseCopyOf(x))
+}
+
+func ReluInPlace(x *mat.Dense) *mat.Dense {
+	x.Apply(func(_, _ int, v float64) float64 {
 		if v < 0 {
 			return 0
 		}
 		return v
 	}, x)
-	return out
+	return x
 }
 
 func ReluDerivative(x *mat.Dense) *mat.Dense {
@@ -31,37 +33,36 @@ func ReluDerivative(x *mat.Dense) *mat.Dense {
 }
 
 func Softmax(input *mat.Dense, dim int) *mat.Dense {
-	r, c := input.Dims()
-	output := mat.NewDense(r, c, nil)
+	return SoftmaxInPlace(mat.DenseCopyOf(input), dim)
+}
 
+func SoftmaxInPlace(input *mat.Dense, dim int) *mat.Dense {
+	r, c := input.Dims()
 	if dim == 0 {
 		for j := 0; j < c; j++ {
 			sum := 0.0
-			expVals := make([]float64, r)
 			for i := 0; i < r; i++ {
 				val := math.Exp(input.At(i, j))
-				expVals[i] = val
+				input.Set(i, j, val)
 				sum += val
 			}
 			for i := 0; i < r; i++ {
-				output.Set(i, j, expVals[i]/sum)
+				input.Set(i, j, input.At(i, j)/sum)
 			}
 		}
-		return output
+		return input
 	}
 
 	for i := 0; i < r; i++ {
 		sum := 0.0
-		expVals := make([]float64, c)
 		for j := 0; j < c; j++ {
 			val := math.Exp(input.At(i, j))
-			expVals[j] = val
+			input.Set(i, j, val)
 			sum += val
 		}
 		for j := 0; j < c; j++ {
-			output.Set(i, j, expVals[j]/sum)
+			input.Set(i, j, input.At(i, j)/sum)
 		}
 	}
-
-	return output
+	return input
 }
