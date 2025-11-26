@@ -3,6 +3,8 @@ package train
 import (
 	"fmt"
 
+	"gonum.org/v1/gonum/mat"
+
 	"github.com/gabitoju/go-gcn/internal/model"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
@@ -20,7 +22,7 @@ type TrainConfig struct {
 	WeightDecay  float64
 }
 
-func (t *TrainConfig) Train(gcn *model.GCN, features [][]float64, adj [][]float64) {
+func (t *TrainConfig) Train(gcn *model.GCN, features, adj *mat.Dense) {
 
 	trnLabels := make([]int32, len(t.TrainMask))
 	validLabels := make([]int32, len(t.ValidMask))
@@ -41,23 +43,19 @@ func (t *TrainConfig) Train(gcn *model.GCN, features [][]float64, adj [][]float6
 	}
 }
 
-func (t *TrainConfig) trainEpoch(gcn *model.GCN, features [][]float64, adj [][]float64, epoch int) {
+func (t *TrainConfig) trainEpoch(gcn *model.GCN, features, adj *mat.Dense, epoch int) {
 
 	gcn.Train()
 
 	output := gcn.Forward(features, adj)
 
-	outputTrn := make([][]float64, len(t.TrainMask))
-	outputValid := make([][]float64, len(t.ValidMask))
-
-	for i, idx := range t.TrainMask {
-		outputTrn[i] = output[idx]
-	}
+	outputTrn := selectRows(output, t.TrainMask)
+	outputValid := selectRows(output, t.ValidMask)
 
 	loss := utils.CrossEntropyLoss(outputTrn, t.TrainLabels)
 	trainAcc := utils.Accuracy(outputTrn, t.TrainLabels)
 
-	grad := utils.CrossEntropyLossDerivative(output, t.TrainLabels)
+	grad := utils.CrossEntropyLossDerivative(output, t.TrainLabels, t.TrainMask)
 
 	gcn.Backward(grad)
 
@@ -68,13 +66,25 @@ func (t *TrainConfig) trainEpoch(gcn *model.GCN, features [][]float64, adj [][]f
 	gcn.Eval()
 	output = gcn.Forward(features, adj)
 
-	for i, idx := range t.ValidMask {
-		outputValid[i] = output[idx]
-	}
+	outputValid = selectRows(output, t.ValidMask)
 
 	validLoss := utils.CrossEntropyLoss(outputValid, t.ValidLabels)
 	validAcc := utils.Accuracy(outputValid, t.ValidLabels)
 
 	fmt.Printf("Epoch: %d, Loss: %.4f, Accuracy: %.4f, Validation Loss: %.4f Validation Accuracy: %.4f\n", epoch, loss, trainAcc, validLoss, validAcc)
 
+}
+
+func selectRows(src *mat.Dense, indices []int) *mat.Dense {
+	if len(indices) == 0 {
+		return mat.NewDense(0, 0, nil)
+	}
+	_, cols := src.Dims()
+	out := mat.NewDense(len(indices), cols, nil)
+	for i, idx := range indices {
+		for j := 0; j < cols; j++ {
+			out.Set(i, j, src.At(idx, j))
+		}
+	}
+	return out
 }

@@ -1,6 +1,8 @@
 package model
 
 import (
+	"gonum.org/v1/gonum/mat"
+
 	"github.com/gabitoju/go-gcn/internal/data"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
@@ -46,7 +48,7 @@ func (g *GCN) Eval() {
 	g.Dropout = 0
 }
 
-func (g *GCN) Forward(x, adj [][]float64) [][]float64 {
+func (g *GCN) Forward(x, adj *mat.Dense) *mat.Dense {
 	normAdj := data.NormalizeAdjacencyMatrix(adj)
 	out := x
 	for i, layer := range g.Layers {
@@ -59,7 +61,7 @@ func (g *GCN) Forward(x, adj [][]float64) [][]float64 {
 	return utils.Softmax(out, 1)
 }
 
-func (g *GCN) Backward(gradOutput [][]float64) {
+func (g *GCN) Backward(gradOutput *mat.Dense) {
 
 	gradients := gradOutput
 

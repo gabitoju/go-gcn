@@ -2,86 +2,66 @@ package utils
 
 import (
 	"math"
+
+	"gonum.org/v1/gonum/mat"
 )
 
-func Relu(x [][]float64) [][]float64 {
-	output := make([][]float64, len(x))
-	for i, row := range x {
-		output[i] = make([]float64, len(row))
-		for j, val := range row {
-			output[i][j] = relu(val)
+func Relu(x *mat.Dense) *mat.Dense {
+	r, c := x.Dims()
+	out := mat.NewDense(r, c, nil)
+	out.Apply(func(_, _ int, v float64) float64 {
+		if v < 0 {
+			return 0
 		}
-	}
-	return output
+		return v
+	}, x)
+	return out
 }
 
-func relu(x float64) float64 {
-	if x < 0 {
-		return 0
-	}
-	return x
-}
-
-func ReluDerivative(x [][]float64) [][]float64 {
-	output := make([][]float64, len(x))
-	for i, row := range x {
-		output[i] = make([]float64, len(row))
-		for j, val := range row {
-			output[i][j] = reluDerivative1d(val)
+func ReluDerivative(x *mat.Dense) *mat.Dense {
+	r, c := x.Dims()
+	out := mat.NewDense(r, c, nil)
+	out.Apply(func(_, _ int, v float64) float64 {
+		if v < 0 {
+			return 0
 		}
-	}
-	return output
+		return 1
+	}, x)
+	return out
 }
 
-func reluDerivative1d(x float64) float64 {
-	if x < 0 {
-		return 0
-	}
-	return 1
-}
-
-func Softmax(input [][]float64, dim int) [][]float64 {
-
-	output := make([][]float64, len(input))
+func Softmax(input *mat.Dense, dim int) *mat.Dense {
+	r, c := input.Dims()
+	output := mat.NewDense(r, c, nil)
 
 	if dim == 0 {
-
-		rows := len(input)
-		columns := len(input[0])
-
-		for i := range output {
-			output[i] = make([]float64, columns)
-		}
-
-		for i := 0; i < columns; i++ {
-			column := make([]float64, rows)
-			for j := 0; j < rows; j++ {
-				column[j] = input[j][i]
+		for j := 0; j < c; j++ {
+			sum := 0.0
+			expVals := make([]float64, r)
+			for i := 0; i < r; i++ {
+				val := math.Exp(input.At(i, j))
+				expVals[i] = val
+				sum += val
 			}
-
-			softmaxColumns := softmax1d(column)
-
-			for j := 0; j < rows; j++ {
-				output[j][i] = softmaxColumns[j]
+			for i := 0; i < r; i++ {
+				output.Set(i, j, expVals[i]/sum)
 			}
 		}
-	} else {
-		for i, row := range input {
-			output[i] = softmax1d(row)
+		return output
+	}
+
+	for i := 0; i < r; i++ {
+		sum := 0.0
+		expVals := make([]float64, c)
+		for j := 0; j < c; j++ {
+			val := math.Exp(input.At(i, j))
+			expVals[j] = val
+			sum += val
+		}
+		for j := 0; j < c; j++ {
+			output.Set(i, j, expVals[j]/sum)
 		}
 	}
 
-	return output
-}
-
-func softmax1d(logits []float64) []float64 {
-	output := make([]float64, len(logits))
-	sum := 0.0
-	for i := range logits {
-		sum += math.Exp(logits[i])
-	}
-	for i := range logits {
-		output[i] = math.Exp(logits[i]) / sum
-	}
 	return output
 }
