@@ -18,6 +18,9 @@ type Layer struct {
 	dH           *mat.Dense
 	H            *mat.Dense
 	Z            *mat.Dense
+	supportBuf   *mat.Dense
+	outputBuf    *mat.Dense
+	gradZBuf     *mat.Dense
 	learningRate float64
 	mW           *mat.Dense
 	vW           *mat.Dense
@@ -64,23 +67,26 @@ func (l *Layer) Forward(input, adj *mat.Dense) *mat.Dense {
 	l.H = input
 	rows, _ := input.Dims()
 
-	support := mat.NewDense(rows, l.OutFeatures, nil)
-	support.Mul(input, l.Weights)
+	if l.supportBuf == nil || !dimsMatch(l.supportBuf, rows, l.OutFeatures) {
+		l.supportBuf = mat.NewDense(rows, l.OutFeatures, nil)
+	}
+	l.supportBuf.Mul(input, l.Weights)
 
-	output := mat.NewDense(rows, l.OutFeatures, nil)
-	output.Mul(adj, support)
+	if l.outputBuf == nil || !dimsMatch(l.outputBuf, rows, l.OutFeatures) {
+		l.outputBuf = mat.NewDense(rows, l.OutFeatures, nil)
+	}
+	l.outputBuf.Mul(adj, l.supportBuf)
 
-	addBias(output, l.Bias)
-	l.Z = output
-	return output
+	addBias(l.outputBuf, l.Bias)
+	l.Z = l.outputBuf
+	return l.outputBuf
 }
 
 func addBias(out *mat.Dense, bias *mat.VecDense) {
-	rows, cols := out.Dims()
+	rows, _ := out.Dims()
 	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
-			out.Set(i, j, out.At(i, j)+bias.AtVec(j))
-		}
+		row := mat.NewVecDense(bias.Len(), out.RawRowView(i))
+		row.AddVec(row, bias)
 	}
 }
 
@@ -88,16 +94,30 @@ func (l *Layer) Backward(gradOutput *mat.Dense) {
 	reluGrad := utils.ReluDerivative(l.Z)
 	rows, cols := reluGrad.Dims()
 
-	gradZ := mat.NewDense(rows, cols, nil)
-	gradZ.MulElem(gradOutput, reluGrad)
+	if l.gradZBuf == nil || !dimsMatch(l.gradZBuf, rows, cols) {
+		l.gradZBuf = mat.NewDense(rows, cols, nil)
+	}
+	l.gradZBuf.MulElem(gradOutput, reluGrad)
 
-	l.dW = mat.NewDense(l.InFeatures, l.OutFeatures, nil)
-	l.dW.Mul(l.H.T(), gradZ)
+	if l.dW == nil || !dimsMatch(l.dW, l.InFeatures, l.OutFeatures) {
+		l.dW = mat.NewDense(l.InFeatures, l.OutFeatures, nil)
+	}
+	l.dW.Mul(l.H.T(), l.gradZBuf)
 
-	l.dB = ComputeBiasGradient(gradZ)
+	l.dB = ComputeBiasGradient(l.gradZBuf)
 
-	l.dH = mat.NewDense(rows, l.InFeatures, nil)
-	l.dH.Mul(gradZ, l.Weights.T())
+	if l.dH == nil || !dimsMatch(l.dH, rows, l.InFeatures) {
+		l.dH = mat.NewDense(rows, l.InFeatures, nil)
+	}
+	l.dH.Mul(l.gradZBuf, l.Weights.T())
+}
+
+func dimsMatch(m *mat.Dense, r, c int) bool {
+	if m == nil {
+		return false
+	}
+	rows, cols := m.Dims()
+	return rows == r && cols == c
 }
 
 func ComputeBiasGradient(gradZ *mat.Dense) *mat.VecDense {
