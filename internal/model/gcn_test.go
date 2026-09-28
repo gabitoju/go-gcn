@@ -6,6 +6,7 @@ import (
 
 	"gonum.org/v1/gonum/mat"
 
+	"github.com/gabitoju/go-gcn/internal/data"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
@@ -75,5 +76,24 @@ func TestGCNAdjacencyCaching(t *testing.T) {
 	gcn.Forward(x, adj)
 	if gcn.cachedAdj != first {
 		t.Fatal("expected cached adjacency to be reused with same pointer")
+	}
+}
+
+func TestGCNSparseForwardMatchesDense(t *testing.T) {
+	gcn := NewGCN(2, 1, 1, 2, 0, 0.001)
+	gcn.Layers[0] = NewLayerFromWeightsAndBias(mat.NewDense(1, 1, []float64{0.5}), mat.NewVecDense(1, []float64{0}))
+	gcn.Layers[1] = NewLayerFromWeightsAndBias(mat.NewDense(1, 2, []float64{0.2, -0.1}), mat.NewVecDense(2, []float64{0, 0}))
+	x := mat.NewDense(3, 1, []float64{1, 2, 3})
+	denseAdj := mat.NewDense(3, 3, []float64{
+		0, 1, 0,
+		1, 0, 1,
+		0, 1, 0,
+	})
+	sparseAdj := data.NewSparseMatrix(3, 3, [][2]int{{0, 1}, {1, 0}, {1, 2}, {2, 1}})
+
+	denseOutput := gcn.Forward(x, denseAdj)
+	sparseOutput := gcn.ForwardSparse(x, sparseAdj)
+	if !mat.EqualApprox(sparseOutput, denseOutput, 1e-12) {
+		t.Fatalf("sparse output = %v; dense output = %v", mat.Formatted(sparseOutput), mat.Formatted(denseOutput))
 	}
 }

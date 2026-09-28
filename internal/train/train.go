@@ -5,6 +5,7 @@ import (
 
 	"gonum.org/v1/gonum/mat"
 
+	"github.com/gabitoju/go-gcn/internal/data"
 	"github.com/gabitoju/go-gcn/internal/model"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
@@ -23,6 +24,14 @@ type TrainConfig struct {
 }
 
 func (t *TrainConfig) Train(gcn *model.GCN, features, adj *mat.Dense) {
+	t.train(gcn, features, func() *mat.Dense { return gcn.Forward(features, adj) })
+}
+
+func (t *TrainConfig) TrainSparse(gcn *model.GCN, features *mat.Dense, adj *data.SparseMatrix) {
+	t.train(gcn, features, func() *mat.Dense { return gcn.ForwardSparse(features, adj) })
+}
+
+func (t *TrainConfig) train(gcn *model.GCN, features *mat.Dense, forward func() *mat.Dense) {
 
 	trnLabels := make([]int32, len(t.TrainMask))
 	validLabels := make([]int32, len(t.ValidMask))
@@ -44,22 +53,22 @@ func (t *TrainConfig) Train(gcn *model.GCN, features, adj *mat.Dense) {
 	t.TestLabels = testLabels
 
 	for epoch := 1; epoch <= t.Epochs; epoch++ {
-		t.trainEpoch(gcn, features, adj, epoch)
+		t.trainEpoch(gcn, forward, epoch)
 	}
 
 	if len(t.TestMask) > 0 {
 		gcn.Eval()
-		output := gcn.Forward(features, adj)
+		output := forward()
 		outputTest := selectRows(output, t.TestMask)
 		fmt.Printf("Test Loss: %.4f Test Accuracy: %.4f\n", utils.CrossEntropyLoss(outputTest, t.TestLabels), utils.Accuracy(outputTest, t.TestLabels))
 	}
 }
 
-func (t *TrainConfig) trainEpoch(gcn *model.GCN, features, adj *mat.Dense, epoch int) {
+func (t *TrainConfig) trainEpoch(gcn *model.GCN, forward func() *mat.Dense, epoch int) {
 
 	gcn.Train()
 
-	output := gcn.Forward(features, adj)
+	output := forward()
 
 	outputTrn := selectRows(output, t.TrainMask)
 	loss := utils.CrossEntropyLoss(outputTrn, t.TrainLabels)
@@ -74,7 +83,7 @@ func (t *TrainConfig) trainEpoch(gcn *model.GCN, features, adj *mat.Dense, epoch
 	}
 
 	gcn.Eval()
-	output = gcn.Forward(features, adj)
+	output = forward()
 
 	outputValid := selectRows(output, t.ValidMask)
 
