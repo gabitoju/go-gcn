@@ -27,6 +27,6 @@ func main() {
 	}
 
 	gcn := model.NewGCN(2, featureDim, 16, 7, 0.5, t.LearningRate)
-	t.Train(gcn, features, adj)
+	t.TrainSparse(gcn, features, adj)
 
 }

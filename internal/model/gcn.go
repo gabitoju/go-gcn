@@ -17,6 +17,8 @@ type GCN struct {
 	internalDropout float64
 	cachedAdjSrc    *mat.Dense
 	cachedAdj       *mat.Dense
+	cachedSparseSrc *data.SparseMatrix
+	cachedSparseAdj *data.SparseMatrix
 	hiddenBufs      []*mat.Dense
 	dropoutMasks    []*mat.Dense
 }
@@ -59,6 +61,19 @@ func (g *GCN) Forward(x, adj *mat.Dense) *mat.Dense {
 	out := x
 	for i, layer := range g.Layers {
 		out = layer.Forward(out, normAdj)
+		if i < g.NLayers-1 {
+			out = g.hiddenActivation(i, out)
+			g.applyDropout(i, out)
+		}
+	}
+	return utils.Softmax(out, 1)
+}
+
+func (g *GCN) ForwardSparse(x *mat.Dense, adj *data.SparseMatrix) *mat.Dense {
+	normAdj := g.normalizedSparseAdj(adj)
+	out := x
+	for i, layer := range g.Layers {
+		out = layer.ForwardSparse(out, normAdj)
 		if i < g.NLayers-1 {
 			out = g.hiddenActivation(i, out)
 			g.applyDropout(i, out)
@@ -126,4 +141,13 @@ func (g *GCN) normalizedAdj(adj *mat.Dense) *mat.Dense {
 	g.cachedAdj = data.NormalizeAdjacencyMatrix(adj)
 	g.cachedAdjSrc = adj
 	return g.cachedAdj
+}
+
+func (g *GCN) normalizedSparseAdj(adj *data.SparseMatrix) *data.SparseMatrix {
+	if g.cachedSparseSrc == adj && g.cachedSparseAdj != nil {
+		return g.cachedSparseAdj
+	}
+	g.cachedSparseAdj = adj.NormalizedWithSelfLoops()
+	g.cachedSparseSrc = adj
+	return g.cachedSparseAdj
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
-func LoadData(path, dataset string) (*mat.Dense, *mat.Dense, []int32) {
+func LoadData(path, dataset string) (*mat.Dense, *SparseMatrix, []int32) {
 
 	contentPath := path + "/" + dataset + ".content"
 	edgePath := path + "/" + dataset + ".cites"
@@ -59,7 +59,7 @@ func LoadData(path, dataset string) (*mat.Dense, *mat.Dense, []int32) {
 	csvReader = csv.NewReader(edgeFile)
 	csvReader.Comma = '\t'
 
-	adj := mat.NewDense(len(indices), len(indices), nil)
+	edges := make([][2]int, 0)
 	for {
 		record, err := csvReader.Read()
 		if err != nil {
@@ -71,13 +71,12 @@ func LoadData(path, dataset string) (*mat.Dense, *mat.Dense, []int32) {
 		ix1 := indices[id1]
 		ix2 := indices[id2]
 
-		adj.Set(ix1, ix2, 1)
-		adj.Set(ix2, ix1, 1)
+		edges = append(edges, [2]int{ix1, ix2}, [2]int{ix2, ix1})
 	}
 
 	featuresMat := mat.NewDense(len(labels), featureLen, featuresData)
 
-	return featuresMat, adj, encoded_labels
+	return featuresMat, NewSparseMatrix(len(indices), len(indices), edges), encoded_labels
 }
 
 func EncodeOneHot(labels []string) []int32 {

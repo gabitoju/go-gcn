@@ -5,6 +5,7 @@ import (
 
 	"gonum.org/v1/gonum/mat"
 
+	"github.com/gabitoju/go-gcn/internal/data"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
@@ -19,6 +20,7 @@ type Layer struct {
 	H            *mat.Dense
 	Z            *mat.Dense
 	adj          *mat.Dense
+	sparseAdj    *data.SparseMatrix
 	supportBuf   *mat.Dense
 	outputBuf    *mat.Dense
 	gradZBuf     *mat.Dense
@@ -68,6 +70,18 @@ func (l *Layer) ResetWeightsAndBias() {
 func (l *Layer) Forward(input, adj *mat.Dense) *mat.Dense {
 	l.H = input
 	l.adj = adj
+	l.sparseAdj = nil
+	return l.forward(input, func(output, support *mat.Dense) { output.Mul(adj, support) })
+}
+
+func (l *Layer) ForwardSparse(input *mat.Dense, adj *data.SparseMatrix) *mat.Dense {
+	l.H = input
+	l.adj = nil
+	l.sparseAdj = adj
+	return l.forward(input, adj.MulDense)
+}
+
+func (l *Layer) forward(input *mat.Dense, multiply func(*mat.Dense, *mat.Dense)) *mat.Dense {
 	rows, _ := input.Dims()
 
 	if l.supportBuf == nil || !dimsMatch(l.supportBuf, rows, l.OutFeatures) {
@@ -78,7 +92,7 @@ func (l *Layer) Forward(input, adj *mat.Dense) *mat.Dense {
 	if l.outputBuf == nil || !dimsMatch(l.outputBuf, rows, l.OutFeatures) {
 		l.outputBuf = mat.NewDense(rows, l.OutFeatures, nil)
 	}
-	l.outputBuf.Mul(adj, l.supportBuf)
+	multiply(l.outputBuf, l.supportBuf)
 
 	addBias(l.outputBuf, l.Bias)
 	l.Z = l.outputBuf
@@ -104,7 +118,11 @@ func (l *Layer) Backward(gradOutput *mat.Dense) {
 	if l.gradSupport == nil || !dimsMatch(l.gradSupport, rows, cols) {
 		l.gradSupport = mat.NewDense(rows, cols, nil)
 	}
-	l.gradSupport.Mul(l.adj.T(), l.gradZBuf)
+	if l.adj != nil {
+		l.gradSupport.Mul(l.adj.T(), l.gradZBuf)
+	} else {
+		l.sparseAdj.TransposeMulDense(l.gradSupport, l.gradZBuf)
+	}
 
 	if l.dW == nil || !dimsMatch(l.dW, l.InFeatures, l.OutFeatures) {
 		l.dW = mat.NewDense(l.InFeatures, l.OutFeatures, nil)

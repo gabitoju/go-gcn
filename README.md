@@ -12,6 +12,7 @@ This implementation is based on the paper [Semi-Supervised Classification with G
 - Accuracy evaluation metrics
 - Gonum-backed dense matrix operations, activation functions, and loss calculations
 - Data loading and preprocessing for the Cora dataset
+- CSR sparse adjacency propagation for Cora-scale and larger graphs
 
 
 ## Installation
@@ -90,7 +91,7 @@ The project uses the Cora dataset, a common benchmark for graph-based learning t
 
 ### Data Loading
 
-The `LoadData` function in `internal/data/load.go` is responsible for loading and processing the dataset into adjacency matrices and feature matrices.
+The `LoadData` function in `internal/data/load.go` is responsible for loading and processing the dataset into a dense feature matrix and a CSR sparse adjacency matrix. Graph convolution uses sparse-dense multiplication, avoiding an `N × N` dense adjacency allocation.
 
 ## Model Structure
 
