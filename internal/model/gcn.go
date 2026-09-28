@@ -17,6 +17,8 @@ type GCN struct {
 	internalDropout float64
 	cachedAdjSrc    *mat.Dense
 	cachedAdj       *mat.Dense
+	hiddenBufs      []*mat.Dense
+	dropoutMasks    []*mat.Dense
 }
 
 func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout, lr float64) *GCN {
@@ -39,6 +41,8 @@ func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout, lr float64) *GCN
 		NClasses:        nClasses,
 		Dropout:         dropout,
 		internalDropout: dropout,
+		hiddenBufs:      make([]*mat.Dense, nLayers-1),
+		dropoutMasks:    make([]*mat.Dense, nLayers-1),
 	}
 }
 
@@ -56,11 +60,11 @@ func (g *GCN) Forward(x, adj *mat.Dense) *mat.Dense {
 	for i, layer := range g.Layers {
 		out = layer.Forward(out, normAdj)
 		if i < g.NLayers-1 {
-			out = utils.ReluInPlace(out)
-			out = utils.DropoutInPlace(out, g.Dropout)
+			out = g.hiddenActivation(i, out)
+			g.applyDropout(i, out)
 		}
 	}
-	return utils.SoftmaxInPlace(out, 1)
+	return utils.Softmax(out, 1)
 }
 
 func (g *GCN) Backward(gradOutput *mat.Dense) {
@@ -70,7 +74,43 @@ func (g *GCN) Backward(gradOutput *mat.Dense) {
 	for i := g.NLayers - 1; i >= 0; i-- {
 		g.Layers[i].Backward(gradients)
 		gradients = g.Layers[i].dH
+		if i > 0 {
+			gradients.MulElem(gradients, g.dropoutMasks[i-1])
+			gradients.MulElem(gradients, utils.ReluDerivative(g.Layers[i-1].Z))
+		}
 	}
+}
+
+func (g *GCN) hiddenActivation(i int, input *mat.Dense) *mat.Dense {
+	r, c := input.Dims()
+	if g.hiddenBufs[i] == nil || !dimsMatch(g.hiddenBufs[i], r, c) {
+		g.hiddenBufs[i] = mat.NewDense(r, c, nil)
+	}
+	g.hiddenBufs[i].Copy(input)
+	return utils.ReluInPlace(g.hiddenBufs[i])
+}
+
+func (g *GCN) applyDropout(i int, input *mat.Dense) {
+	r, c := input.Dims()
+	if g.dropoutMasks[i] == nil || !dimsMatch(g.dropoutMasks[i], r, c) {
+		g.dropoutMasks[i] = mat.NewDense(r, c, nil)
+	}
+	mask := g.dropoutMasks[i]
+	if g.Dropout == 0 {
+		mask.Apply(func(_, _ int, _ float64) float64 { return 1 }, mask)
+		return
+	}
+	keepScale := 1 / (1 - g.Dropout)
+	for row := 0; row < r; row++ {
+		for col := 0; col < c; col++ {
+			if utils.RandFloat64() < g.Dropout {
+				mask.Set(row, col, 0)
+			} else {
+				mask.Set(row, col, keepScale)
+			}
+		}
+	}
+	input.MulElem(input, mask)
 }
 
 func (gcn *GCN) SGDUpdateWeights(learningRate float64) {

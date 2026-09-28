@@ -18,9 +18,11 @@ type Layer struct {
 	dH           *mat.Dense
 	H            *mat.Dense
 	Z            *mat.Dense
+	adj          *mat.Dense
 	supportBuf   *mat.Dense
 	outputBuf    *mat.Dense
 	gradZBuf     *mat.Dense
+	gradSupport  *mat.Dense
 	learningRate float64
 	mW           *mat.Dense
 	vW           *mat.Dense
@@ -65,6 +67,7 @@ func (l *Layer) ResetWeightsAndBias() {
 
 func (l *Layer) Forward(input, adj *mat.Dense) *mat.Dense {
 	l.H = input
+	l.adj = adj
 	rows, _ := input.Dims()
 
 	if l.supportBuf == nil || !dimsMatch(l.supportBuf, rows, l.OutFeatures) {
@@ -91,25 +94,29 @@ func addBias(out *mat.Dense, bias *mat.VecDense) {
 }
 
 func (l *Layer) Backward(gradOutput *mat.Dense) {
-	reluGrad := utils.ReluDerivative(l.Z)
-	rows, cols := reluGrad.Dims()
+	rows, cols := gradOutput.Dims()
 
 	if l.gradZBuf == nil || !dimsMatch(l.gradZBuf, rows, cols) {
 		l.gradZBuf = mat.NewDense(rows, cols, nil)
 	}
-	l.gradZBuf.MulElem(gradOutput, reluGrad)
+	l.gradZBuf.Copy(gradOutput)
+
+	if l.gradSupport == nil || !dimsMatch(l.gradSupport, rows, cols) {
+		l.gradSupport = mat.NewDense(rows, cols, nil)
+	}
+	l.gradSupport.Mul(l.adj.T(), l.gradZBuf)
 
 	if l.dW == nil || !dimsMatch(l.dW, l.InFeatures, l.OutFeatures) {
 		l.dW = mat.NewDense(l.InFeatures, l.OutFeatures, nil)
 	}
-	l.dW.Mul(l.H.T(), l.gradZBuf)
+	l.dW.Mul(l.H.T(), l.gradSupport)
 
 	l.dB = ComputeBiasGradient(l.gradZBuf)
 
 	if l.dH == nil || !dimsMatch(l.dH, rows, l.InFeatures) {
 		l.dH = mat.NewDense(rows, l.InFeatures, nil)
 	}
-	l.dH.Mul(l.gradZBuf, l.Weights.T())
+	l.dH.Mul(l.gradSupport, l.Weights.T())
 }
 
 func dimsMatch(m *mat.Dense, r, c int) bool {

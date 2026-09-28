@@ -99,7 +99,7 @@ func EncodeOneHot(labels []string) []int32 {
 	return oneHotLabels
 }
 
-func CreateDataSplit(trainSize, testSize, validationSize, size int) ([]int, []int, []int) {
+func CreateDataSplit(trainSize, validationSize, testSize, size int) ([]int, []int, []int) {
 	indices := make([]int, size)
 	for i := 0; i < size; i++ {
 		indices[i] = i
@@ -108,8 +108,8 @@ func CreateDataSplit(trainSize, testSize, validationSize, size int) ([]int, []in
 	indices = utils.ShuffleInts(size, indices)
 
 	trainIndices := indices[:trainSize]
-	testIndices := indices[trainSize : trainSize+testSize]
-	validationIndices := indices[trainSize+testSize : trainSize+testSize+validationSize]
+	validationIndices := indices[trainSize : trainSize+validationSize]
+	testIndices := indices[trainSize+validationSize : trainSize+validationSize+testSize]
 
-	return trainIndices, testIndices, validationIndices
+	return trainIndices, validationIndices, testIndices
 }

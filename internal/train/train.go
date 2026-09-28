@@ -26,6 +26,7 @@ func (t *TrainConfig) Train(gcn *model.GCN, features, adj *mat.Dense) {
 
 	trnLabels := make([]int32, len(t.TrainMask))
 	validLabels := make([]int32, len(t.ValidMask))
+	testLabels := make([]int32, len(t.TestMask))
 
 	for i := range trnLabels {
 		trnLabels[i] = t.Labels[t.TrainMask[i]]
@@ -34,12 +35,23 @@ func (t *TrainConfig) Train(gcn *model.GCN, features, adj *mat.Dense) {
 	for i := range validLabels {
 		validLabels[i] = t.Labels[t.ValidMask[i]]
 	}
+	for i := range testLabels {
+		testLabels[i] = t.Labels[t.TestMask[i]]
+	}
 
 	t.TrainLabels = trnLabels
 	t.ValidLabels = validLabels
+	t.TestLabels = testLabels
 
 	for epoch := 1; epoch <= t.Epochs; epoch++ {
 		t.trainEpoch(gcn, features, adj, epoch)
+	}
+
+	if len(t.TestMask) > 0 {
+		gcn.Eval()
+		output := gcn.Forward(features, adj)
+		outputTest := selectRows(output, t.TestMask)
+		fmt.Printf("Test Loss: %.4f Test Accuracy: %.4f\n", utils.CrossEntropyLoss(outputTest, t.TestLabels), utils.Accuracy(outputTest, t.TestLabels))
 	}
 }
 
@@ -50,8 +62,6 @@ func (t *TrainConfig) trainEpoch(gcn *model.GCN, features, adj *mat.Dense, epoch
 	output := gcn.Forward(features, adj)
 
 	outputTrn := selectRows(output, t.TrainMask)
-	outputValid := selectRows(output, t.ValidMask)
-
 	loss := utils.CrossEntropyLoss(outputTrn, t.TrainLabels)
 	trainAcc := utils.Accuracy(outputTrn, t.TrainLabels)
 
@@ -66,7 +76,7 @@ func (t *TrainConfig) trainEpoch(gcn *model.GCN, features, adj *mat.Dense, epoch
 	gcn.Eval()
 	output = gcn.Forward(features, adj)
 
-	outputValid = selectRows(output, t.ValidMask)
+	outputValid := selectRows(output, t.ValidMask)
 
 	validLoss := utils.CrossEntropyLoss(outputValid, t.ValidLabels)
 	validAcc := utils.Accuracy(outputValid, t.ValidLabels)
