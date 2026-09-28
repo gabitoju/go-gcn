@@ -7,7 +7,7 @@ This implementation is based on the paper [Semi-Supervised Classification with G
 ## Features
 
 - Graph Convolutional Network (GCN) architecture
-- Supports both SGD and Adam optimizers
+- Adam optimizer with an available SGD update primitive
 - Dropout regularization to prevent overfitting
 - Accuracy evaluation metrics
 - Gonum-backed dense matrix operations, activation functions, and loss calculations
@@ -17,17 +17,19 @@ This implementation is based on the paper [Semi-Supervised Classification with G
 
 ## Installation
 
-1. Clone the repository:
+1. Install Go 1.22.4 or later.
+
+2. Clone the repository:
 
 ```bash
 git clone https://github.com/gabitoju/go-gcn.git
 cd go-gcn
 ```
 
-2. Install the dependencies:
+3. Download dependencies:
 
 ```bash
-go mod tidy
+go mod download
 ```
 
 ## Usage
@@ -78,7 +80,7 @@ func main() {
     gcn := model.NewGCN(2, featureDim, 16, 7, 0.5, t.LearningRate)
 
     // Train the model
-    t.Train(gcn, features, adj)
+    t.TrainSparse(gcn, features, adj)
 }
 ```
 
