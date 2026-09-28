@@ -10,7 +10,7 @@ This implementation is based on the paper [Semi-Supervised Classification with G
 - Supports both SGD and Adam optimizers
 - Dropout regularization to prevent overfitting
 - Accuracy evaluation metrics
-- Utility functions for matrix operations, activation functions, and loss calculations
+- Gonum-backed dense matrix operations, activation functions, and loss calculations
 - Data loading and preprocessing for the Cora dataset
 
 
@@ -56,7 +56,7 @@ func main() {
     utils.InitializeRand(42) // Initialize random seed
 
     // Load Cora dataset
-    features, adj, labels := data.LoadData("../datasets/cora", "cora")
+    features, adj, labels := data.LoadData("datasets/cora", "cora")
 
     // Create train, validation, and test splits
     trn, valid, test := data.CreateDataSplit(140, 500, 1000, len(labels))
@@ -73,7 +73,8 @@ func main() {
     }
 
     // Initialize the GCN model
-    gcn := model.NewGCN(2, len(features[0]), 16, 7, 0.5, t.LearningRate)
+    _, featureDim := features.Dims()
+    gcn := model.NewGCN(2, featureDim, 16, 7, 0.5, t.LearningRate)
 
     // Train the model
     t.Train(gcn, features, adj)
@@ -107,7 +108,7 @@ The training loop is implemented in `internal/train/train.go`. It supports accur
 
 ## Evaluation
 
-Accuracy is calculated using the `Accuracy` function in `internal/utils/evaluation.go`. After each epoch, the model's accuracy and loss on both the training and validation datasets are printed.
+Accuracy is calculated using the `Accuracy` function in `internal/utils/evaluation.go`. After each epoch, the model prints training and validation metrics, then reports held-out test loss and accuracy after training completes. `CreateDataSplit` returns train, validation, and test indices in that order.
 
 ## Future Improvements
 
