@@ -1,39 +1,43 @@
 package utils
 
-import "math"
+import (
+	"math"
 
-func CrossEntropyLoss(input [][]float64, labels []int32) float64 {
+	"gonum.org/v1/gonum/mat"
+)
+
+func CrossEntropyLoss(input *mat.Dense, labels []int32) float64 {
 	epsilon := 1e-10
+	rows, _ := input.Dims()
 
 	loss := 0.0
-	for i := range labels {
-		trueValueIndex := labels[i]
-		predictedValue := input[i][trueValueIndex]
-
-		loss += -math.Log(predictedValue + epsilon)
+	for i := 0; i < rows; i++ {
+		trueIdx := int(labels[i])
+		predicted := input.At(i, trueIdx)
+		loss += -math.Log(predicted + epsilon)
 	}
-	return loss / float64(len(input))
+
+	return loss / float64(rows)
 }
 
-func CrossEntropyLossDerivative(input [][]float64, labels []int32) [][]float64 {
-	output := make([][]float64, len(input))
+func CrossEntropyLossDerivative(input *mat.Dense, labels []int32, indices []int) *mat.Dense {
+	rows, cols := input.Dims()
+	grad := mat.NewDense(rows, cols, nil)
+	if len(indices) == 0 {
+		return grad
+	}
 
-	for i := range labels {
-		output[i] = make([]float64, len(input[0]))
-		for j := range input[i] {
-			if j == int(labels[i]) {
-				output[i][j] = input[i][j] - 1.0 + 1e-10
+	norm := float64(len(indices))
+	for i, idx := range indices {
+		label := int(labels[i])
+		for j := 0; j < cols; j++ {
+			val := input.At(idx, j)
+			if j == label {
+				grad.Set(idx, j, (val-1.0+1e-10)/norm)
 			} else {
-				output[i][j] = input[i][j]
+				grad.Set(idx, j, val/norm)
 			}
 		}
 	}
-
-	for i := range output {
-		for j := range output[i] {
-			output[i][j] /= float64(len(input))
-		}
-	}
-
-	return output
+	return grad
 }

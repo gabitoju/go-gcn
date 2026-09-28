@@ -1,18 +1,17 @@
 package utils
 
-func Dropout(x [][]float64, dropoutRate float64) [][]float64 {
+import "gonum.org/v1/gonum/mat"
 
-	output := make([][]float64, len(x))
+func Dropout(x *mat.Dense, dropoutRate float64) *mat.Dense {
+	return DropoutInPlace(mat.DenseCopyOf(x), dropoutRate)
+}
 
-	for i := range x {
-		output[i] = make([]float64, len(x[i]))
-		for j := range x[i] {
-			if RandFloat64() < dropoutRate {
-				output[i][j] = 0
-			} else {
-				output[i][j] = x[i][j] / (1 - dropoutRate)
-			}
+func DropoutInPlace(x *mat.Dense, dropoutRate float64) *mat.Dense {
+	x.Apply(func(_, _ int, v float64) float64 {
+		if RandFloat64() < dropoutRate {
+			return 0
 		}
-	}
-	return output
+		return v / (1 - dropoutRate)
+	}, x)
+	return x
 }

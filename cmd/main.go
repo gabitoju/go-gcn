@@ -11,7 +11,8 @@ func main() {
 
 	utils.InitializeRand(42)
 
-	features, adj, labels := data.LoadData("../datasets/cora", "cora")
+	features, adj, labels := data.LoadData("datasets/cora", "cora")
+	_, featureDim := features.Dims()
 
 	trn, valid, test := data.CreateDataSplit(140, 500, 1000, len(labels))
 
@@ -25,7 +26,7 @@ func main() {
 		WeightDecay:  5e-4,
 	}
 
-	gcn := model.NewGCN(2, len(features[0]), 16, 7, 0.5, t.LearningRate)
+	gcn := model.NewGCN(2, featureDim, 16, 7, 0.5, t.LearningRate)
 	t.Train(gcn, features, adj)
 
 }

@@ -3,54 +3,51 @@ package data
 import (
 	"math"
 
-	"github.com/gabitoju/go-gcn/internal/utils"
+	"gonum.org/v1/gonum/mat"
 )
 
-func NormalizeAdjacencyMatrix(adj [][]float64) [][]float64 {
-	I := IdentityMatrix(len(adj))
-	selfLoopsMatrix := utils.MatAdd(adj, I)
+func NormalizeAdjacencyMatrix(adj *mat.Dense) *mat.Dense {
+	n, _ := adj.Dims()
+	var selfLoops mat.Dense
+	selfLoops.Add(adj, IdentityMatrix(n))
 
-	D := DegreeMatrix(selfLoopsMatrix)
-	invSqrtD := make([][]float64, len(D))
-	for i, row := range D {
-		invSqrtD[i] = make([]float64, len(row))
-		for j, val := range row {
-			if val == 0 {
-				invSqrtD[i][j] = 0
-			} else {
-				invSqrtD[i][j] = 1 / math.Sqrt(val)
-			}
+	D := DegreeMatrix(&selfLoops)
+	invSqrtD := mat.NewDense(n, n, nil)
+	invSqrtD.Apply(func(i, j int, v float64) float64 {
+		if i != j {
+			return 0
 		}
-	}
-	normalizedAdj := utils.MatMul(utils.MatMul(invSqrtD, selfLoopsMatrix), invSqrtD)
-	return normalizedAdj
+		if v == 0 {
+			return 0
+		}
+		return 1 / math.Sqrt(v)
+	}, D)
+
+	var normalized mat.Dense
+	var temp mat.Dense
+	temp.Mul(invSqrtD, &selfLoops)
+	normalized.Mul(&temp, invSqrtD)
+	return &normalized
 }
 
-func IdentityMatrix(n int) [][]float64 {
-	identity := make([][]float64, n)
-	for i := range identity {
-		identity[i] = make([]float64, n)
-		if i < n {
-			identity[i][i] = 1
-		}
+func IdentityMatrix(n int) *mat.Dense {
+	identity := mat.NewDense(n, n, nil)
+	for i := 0; i < n; i++ {
+		identity.Set(i, i, 1)
 	}
 	return identity
 }
 
-func DegreeMatrix(adj [][]float64) [][]float64 {
-	n := len(adj)
-	degree := make([][]float64, n)
-	for i := range adj {
-		degree[i] = make([]float64, n)
-		degree[i][i] = Sum(adj[i])
+func DegreeMatrix(adj *mat.Dense) *mat.Dense {
+	n, _ := adj.Dims()
+	degree := mat.NewDense(n, n, nil)
+	for i := 0; i < n; i++ {
+		var sum float64
+		row := adj.RawRowView(i)
+		for _, val := range row {
+			sum += val
+		}
+		degree.Set(i, i, sum)
 	}
 	return degree
-}
-
-func Sum(row []float64) float64 {
-	var sum float64
-	for _, val := range row {
-		sum += val
-	}
-	return sum
 }

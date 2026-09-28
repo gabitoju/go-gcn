@@ -1,6 +1,8 @@
 package model
 
 import (
+	"gonum.org/v1/gonum/mat"
+
 	"github.com/gabitoju/go-gcn/internal/data"
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
@@ -13,6 +15,8 @@ type GCN struct {
 	NClasses        int
 	Dropout         float64
 	internalDropout float64
+	cachedAdjSrc    *mat.Dense
+	cachedAdj       *mat.Dense
 }
 
 func NewGCN(nLayers, nFeatures, nHidden, nClasses int, dropout, lr float64) *GCN {
@@ -46,20 +50,20 @@ func (g *GCN) Eval() {
 	g.Dropout = 0
 }
 
-func (g *GCN) Forward(x, adj [][]float64) [][]float64 {
-	normAdj := data.NormalizeAdjacencyMatrix(adj)
+func (g *GCN) Forward(x, adj *mat.Dense) *mat.Dense {
+	normAdj := g.normalizedAdj(adj)
 	out := x
 	for i, layer := range g.Layers {
 		out = layer.Forward(out, normAdj)
 		if i < g.NLayers-1 {
-			out = utils.Relu(out)
-			out = utils.Dropout(out, g.Dropout)
+			out = utils.ReluInPlace(out)
+			out = utils.DropoutInPlace(out, g.Dropout)
 		}
 	}
-	return utils.Softmax(out, 1)
+	return utils.SoftmaxInPlace(out, 1)
 }
 
-func (g *GCN) Backward(gradOutput [][]float64) {
+func (g *GCN) Backward(gradOutput *mat.Dense) {
 
 	gradients := gradOutput
 
@@ -73,4 +77,13 @@ func (gcn *GCN) SGDUpdateWeights(learningRate float64) {
 	for _, layer := range gcn.Layers {
 		layer.SGDUpdate(learningRate)
 	}
+}
+
+func (g *GCN) normalizedAdj(adj *mat.Dense) *mat.Dense {
+	if g.cachedAdjSrc == adj && g.cachedAdj != nil {
+		return g.cachedAdj
+	}
+	g.cachedAdj = data.NormalizeAdjacencyMatrix(adj)
+	g.cachedAdjSrc = adj
+	return g.cachedAdj
 }

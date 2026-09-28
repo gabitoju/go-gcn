@@ -5,10 +5,12 @@ import (
 	"os"
 	"strconv"
 
+	"gonum.org/v1/gonum/mat"
+
 	"github.com/gabitoju/go-gcn/internal/utils"
 )
 
-func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
+func LoadData(path, dataset string) (*mat.Dense, *mat.Dense, []int32) {
 
 	contentPath := path + "/" + dataset + ".content"
 	edgePath := path + "/" + dataset + ".cites"
@@ -24,7 +26,8 @@ func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 
 	labels := make([]string, 0)
 	indices := make(map[int]int)
-	features := make([][]float64, 0)
+	var featuresData []float64
+	featureLen := 0
 
 	for {
 		record, err := csvReader.Read()
@@ -39,7 +42,10 @@ func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 		for i, f := range nodeFeatures {
 			nodeFeaturesFloat[i], _ = strconv.ParseFloat(f, 64)
 		}
-		features = append(features, nodeFeaturesFloat)
+		if featureLen == 0 {
+			featureLen = len(nodeFeaturesFloat)
+		}
+		featuresData = append(featuresData, nodeFeaturesFloat...)
 	}
 
 	encoded_labels := EncodeOneHot(labels)
@@ -53,10 +59,7 @@ func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 	csvReader = csv.NewReader(edgeFile)
 	csvReader.Comma = '\t'
 
-	adj := make([][]float64, len(indices))
-	for i := range adj {
-		adj[i] = make([]float64, len(indices))
-	}
+	adj := mat.NewDense(len(indices), len(indices), nil)
 	for {
 		record, err := csvReader.Read()
 		if err != nil {
@@ -68,11 +71,13 @@ func LoadData(path, dataset string) ([][]float64, [][]float64, []int32) {
 		ix1 := indices[id1]
 		ix2 := indices[id2]
 
-		adj[ix1][ix2] = 1
-		adj[ix2][ix1] = 1
+		adj.Set(ix1, ix2, 1)
+		adj.Set(ix2, ix1, 1)
 	}
 
-	return features, adj, encoded_labels
+	featuresMat := mat.NewDense(len(labels), featureLen, featuresData)
+
+	return featuresMat, adj, encoded_labels
 }
 
 func EncodeOneHot(labels []string) []int32 {
